@@ -1,0 +1,5 @@
+Tuve problemas para instalar 'umqtt.simple', la solución fue importar mip y luego usarlo para instalar la libreria:
+""
+  import mip
+  mip.install('umqtt.simple')
+""
