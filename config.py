@@ -7,6 +7,5 @@ clientid = 'XXX'
 user_name = 'XXX.azure-devices.net/picow/?api-version=2021-04-12'
 passw = 'XXX'
 topic_pub = b'devices/XXX/messages/events/'
-topic_msg = b'{"buttonpressed":"1"}'
 port_no = 0
 subscribe_topic = "devices/XXX/messages/devicebound/#"
