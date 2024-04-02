@@ -24,8 +24,8 @@ conversion_factor = 3.3 / (65535)
 dif_sensor_temp = 5
 
 # Winter / Summer
-GMT_OFFSET = 3600 * 1 # 3600 = 1 h (Winter)
-#GMT_OFFSET = 3600 * 2 # 3600 = 1 h (Summer)
+#GMT_OFFSET = 3600 * 1 # 3600 = 1 h (Winter)
+GMT_OFFSET = 3600 * 2 # 3600 = 1 h (Summer)
 
 # NTP-Host
 NTP_HOST = 'pool.ntp.org'
@@ -100,6 +100,7 @@ def getTimeNTP():
     finally:
         s.close()
     ntp_time = struct.unpack("!I", msg[40:44])[0]
+    print("Obtained time")
     return time.gmtime(ntp_time - NTP_DELTA + GMT_OFFSET)
 
 # Function: copy time to PI pico´s RTC
@@ -112,13 +113,15 @@ def get_datetime_rtc():
     d = datetime.datetime(dt[0], dt[1], dt[2], dt[4], dt[5], dt[6], dt[7])
     return d
 
-def get_topic_msg():
-    return b'{"buttonpressed":"' + str (button.value()) + '", "temperature":"' + str (read_temperature()) + '", "datetime":"' + str (get_datetime_rtc()) +'"}'
+def get_topic_msg(first_msg=False):
+    if first_msg:
+        return b'{"deviceid":"' + str (config.clientid) + '", "buttonpressed":"2", "temperature":"' + str (read_temperature()) + '", "datetime":"' + str (get_datetime_rtc()) +'"}'
+    else:
+        return b'{"deviceid":"' + str(config.clientid) + '", "buttonpressed":"' + str(button.value()) + '", "temperature":"' + str(read_temperature()) + '", "datetime":"' + str(get_datetime_rtc()) + '"}'
 
 
 rtc = RTC()
 setTimeRTC()
-print(rtc.datetime())
 lastMinute = rtc.datetime()[5]
 
 try:
@@ -127,25 +130,30 @@ try:
     client.subscribe(topic=config.subscribe_topic)
 except OSError as e:
     reconnect()
+    
+first_message_sent = False  # Variable para controlar si se ha enviado el primer mensaje
 
 while True:
     
     try:
         client.check_msg()
         time.sleep(0.5)
-        if lastMinute < rtc.datetime()[5]:
+        if not first_message_sent:
+            client.publish(config.topic_pub, get_topic_msg(first_msg=True))
+            print(get_topic_msg(first_msg=True))
+            first_message_sent = True
+        elif lastMinute < rtc.datetime()[5]:
             lastMinute = rtc.datetime()[5]
             client.publish(config.topic_pub, get_topic_msg())
+            print(get_topic_msg())
         if button.value():
             client.publish(config.topic_pub, get_topic_msg())
+            print(get_topic_msg())
             time.sleep(0.5)
-            #print(get_topic_msg())
-            #print(rtc.datetime())
+
         else:
             pass
-        
-
-        
+       
     except Exception as e:
         print(e)
-        reconnect()
+        machine.reset()
