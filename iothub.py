@@ -39,19 +39,26 @@ while max_wait > 0:
     print('waiting for connection...')
     time.sleep(1)
 
+ 
+ledGreen = Pin(15, Pin.OUT)
+ledRed = Pin(13, Pin.OUT)
+button = Pin(14, Pin.IN, Pin.PULL_DOWN)
+
+ledRed.value(1)
+
 # Handle connection error
 if wlan.status() != 3:
     raise RuntimeError('network connection failed')
+
 else:
     print('connected')
     status = wlan.ifconfig()
     print( 'ip = ' + status[0] )
- 
-led = Pin(15, Pin.OUT)
-button = Pin(14, Pin.IN, Pin.PULL_DOWN)
+
 
 def mqtt_connect():
-
+    
+    ledRed.value(1)
     certificate_path = "digicert.cer"
     print('Loading Digicert Certificate')
     with open(certificate_path, 'r') as f:
@@ -62,6 +69,7 @@ def mqtt_connect():
     client = MQTTClient(client_id=config.clientid, server=config.hostname, port=config.port_no, user=config.user_name, password=config.passw, keepalive=3600, ssl=True, ssl_params=sslparams)
     client.connect()
     print('Connected to IoT Hub MQTT Broker')
+    ledRed.value(0)
     return client
 
 def reconnect():
@@ -73,10 +81,10 @@ def callback_handler(topic, message_receive):
     print("Received message")
     print(message_receive)
     if message_receive.strip() == b'led_on':
-        led.value(1)
+        ledGreen.value(1)
         #print("led Turn ON")
     else:
-        led.value(0)
+        ledGreen.value(0)
         #print("led Turn OFF")
 
 def read_temperature():
@@ -136,19 +144,25 @@ first_message_sent = False  # Variable para controlar si se ha enviado el primer
 while True:
     
     try:
+        if wlan.status() != 3:
+            raise RuntimeError('network connection failed')
         client.check_msg()
         time.sleep(0.5)
+        ledGreen.value(0)
         if not first_message_sent:
             client.publish(config.topic_pub, get_topic_msg(first_msg=True))
             print(get_topic_msg(first_msg=True))
+            ledGreen.value(1)
             first_message_sent = True
         elif lastMinute < rtc.datetime()[5]:
             lastMinute = rtc.datetime()[5]
             client.publish(config.topic_pub, get_topic_msg())
             print(get_topic_msg())
+            ledGreen.value(1)
         if button.value():
             client.publish(config.topic_pub, get_topic_msg())
             print(get_topic_msg())
+            ledGreen.value(1)
             time.sleep(0.5)
 
         else:
@@ -156,4 +170,6 @@ while True:
        
     except Exception as e:
         print(e)
+        ledRed.value(1)
+        time.sleep(0.5)
         machine.reset()
