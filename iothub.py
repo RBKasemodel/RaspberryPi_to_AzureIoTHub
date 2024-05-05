@@ -154,7 +154,7 @@ while True:
             print(get_topic_msg(first_msg=True))
             ledGreen.value(1)
             first_message_sent = True
-        elif lastMinute < rtc.datetime()[5]:
+        elif lastMinute < rtc.datetime()[5] or (rtc.datetime()[5] == 0 and lastMinute > rtc.datetime()[5]):
             lastMinute = rtc.datetime()[5]
             client.publish(config.topic_pub, get_topic_msg())
             print(get_topic_msg())
